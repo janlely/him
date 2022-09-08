@@ -20,7 +20,7 @@ import System.IO (hReady, stdin, stdout, hShow, hFlush, hGetLine)
 import Debug.Trace (trace)
 import Data.IORef ( IORef, newIORef, readIORef, writeIORef )
 import Control.Lens ( over, makeLenses, view )
-import Him.KeyCode (KeyCode(..), c2k)
+import Him.KeyCode (KeyCode(..), c2k, getKey)
 
 
 data HimMode = HimInsert | HimNormal | HimSelect deriving (Show)
@@ -46,9 +46,8 @@ withoutModes = flip (foldl' withoutMode)
 --     result <- timeout t action
 --     maybe errorAction handler result
 
-handler :: IORef HimState -> Char -> IO ()
-handler hs c = do
-    let key = c2k c
+handler :: IORef HimState -> KeyCode -> IO ()
+handler hs key = do
     hs' <- readIORef hs 
     case _himMode hs' of
         HimNormal -> normalModeHandler hs key
@@ -110,6 +109,8 @@ selectModeHandler = error "to be implemented"
 initWindow :: (Int, Int) -> IO ()
 initWindow s@(h, _) = do
     clearScreen
+    replicateM_ (h-1) $ putStr "~\r\n"
+    putStr "~\r"
     setCursorPosition 0 0
     printWelcomeMessage s
     setCursorPosition 0 0
@@ -149,5 +150,10 @@ main = do
     maybe (die "No window size") initWindow windowSize
     enterRawMode
     hs <- newIORef initHimState 
-    forever $ getChar >>= handler hs
+    forever $ do
+        key <- getKey
+        print key
+        handler hs key
+
+    -- forever $ getChar >>= handler hs
     -- forever $ timeout' 1000000 getChar handler (putStr "hello\r\n")
