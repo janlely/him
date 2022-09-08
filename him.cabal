@@ -35,5 +35,10 @@ executable him
         , unix >= 2.7.2.2
         -- , terminal-size >= 0.3.3
         , ansi-terminal >= 0.11.3
+        , lens >= 5.2
+
+    default-extensions:
+        BinaryLiterals
+        TemplateHaskell 
     hs-source-dirs:   app
     default-language: Haskell2010
