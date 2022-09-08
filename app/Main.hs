@@ -58,10 +58,10 @@ handler hs c = do
 normalModeHandler :: IORef HimState -> KeyCode -> IO ()
 normalModeHandler hs c 
   | c == CTRL_Q = clearScreen >> exitSuccess 
-  | c == LW     = moveCursorUp hs 
-  | c == LS     = moveCursorDown hs
-  | c == LA     = moveCursorLeft hs
-  | c == LD     = moveCursorRight hs
+  | c == LK     = moveCursorUp hs 
+  | c == LJ     = moveCursorDown hs
+  | c == LH     = moveCursorLeft hs
+  | c == LL     = moveCursorRight hs
   | otherwise   = putChar '\r'
 
 

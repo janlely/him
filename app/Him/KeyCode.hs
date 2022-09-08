@@ -13,6 +13,10 @@ data KeyCode =
   | LS --s
   | LD --d
   | LW --w 
+  | LH --h
+  | LJ --j
+  | LK --k
+  | LL --l
   | UNKNOWN deriving (Show, Eq)
 
 
@@ -26,6 +30,10 @@ c2k c
   | c == 's'    = LS
   | c == 'd'    = LD
   | c == 'w'    = LW
+  | c == 'h'    = LH
+  | c == 'j'    = LJ
+  | c == 'k'    = LK
+  | c == 'l'    = LL
   | otherwise   = UNKNOWN
 
 
