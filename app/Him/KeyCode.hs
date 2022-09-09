@@ -8,7 +8,7 @@ import Prelude (Show, Eq, Char, Int, (.), ($), error, (<$>), const)
 import Data.Bits ((.&.))
 import Data.Char
     (isControl, generalCategory, ord, GeneralCategory (Control)
-    , isLetter)
+    , isLetter, isNumber)
 import System.IO hiding (LF)
 import Control.Monad (return, (>>))
 
@@ -23,6 +23,8 @@ data KeyCode =
   | LW | LX | LY | LZ
   | ARROW_UP | ARROW_DOWN | ARROW_LEFT | ARROW_RIGHT
   | PAGE_UP | PAGE_DOWN | HOME | END | DELETE
+  | NUM_0 | NUM_1 | NUM_2 | NUM_3 | NUM_4
+  | NUM_5 | NUM_6 | NUM_7 | NUM_8 | NUM_9
   | UNKNOWN deriving (Show, Eq)
 
 
@@ -33,6 +35,19 @@ c2k :: Char -> KeyCode
 c2k c 
   | isLetter c = letter2k $ ord c
   | isControl c = ctrl2k $ ctrlKey c
+  | isNumber c = number2k c
+
+number2k :: Char -> KeyCode
+number2k '0' = NUM_0 
+number2k '1' = NUM_1 
+number2k '2' = NUM_2 
+number2k '3' = NUM_4 
+number2k '4' = NUM_4 
+number2k '5' = NUM_5 
+number2k '6' = NUM_6 
+number2k '7' = NUM_7 
+number2k '8' = NUM_8 
+number2k '9' = NUM_9 
 
 letter2k :: Int -> KeyCode
 letter2k 97  = LA

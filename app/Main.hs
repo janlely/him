@@ -1,5 +1,6 @@
 module Main where
 
+import System.Environment
 import System.Exit (exitSuccess, die)
 import System.Posix.Terminal
     (getTerminalAttributes,
@@ -14,26 +15,18 @@ import Control.Monad (when, forever, replicateM_, forM_)
 import Data.Maybe (isNothing, fromJust, isJust, catMaybes)
 import System.Console.ANSI
     (clearScreen,setCursorPosition,reportCursorPosition,
-    getTerminalSize, saveCursor, getCursorPosition, cursorUp,
-    cursorDown, cursorForward, cursorBackward)
+    getTerminalSize, getCursorPosition)
 import System.IO (hReady, stdin, stdout, hShow, hFlush, hGetLine)
 import Debug.Trace (trace)
 import Data.IORef ( IORef, newIORef, readIORef, writeIORef )
-import Control.Lens ( over, makeLenses, view )
 import Him.KeyCode (KeyCode(..), c2k, getKey)
+-- import qualified Data.Vector.Unboxed as VU
+import Data.Word (Word8)
+import Him.Args (parseCommandLineArgs)
+import Him.State (HimState, getMode, emptyHimState, initHimState, HimMode(..))
+import Him.Cursor (moveCursorDown, moveCursorUp, moveCursorLeft, moveCursorRight)
 
 
-data HimMode = HimInsert | HimNormal | HimSelect deriving (Show)
-
-data HimState = HimState
-    { _xPos :: Int
-    , _yPos :: Int
-    , _himMode :: HimMode} deriving (Show)
-
-$(makeLenses ''HimState)
-
-initHimState :: HimState
-initHimState = HimState 0 0 HimNormal
 
 stdinFd :: Fd
 stdinFd = 0
@@ -49,7 +42,7 @@ withoutModes = flip (foldl' withoutMode)
 handler :: IORef HimState -> KeyCode -> IO ()
 handler hs key = do
     hs' <- readIORef hs 
-    case _himMode hs' of
+    case getMode hs' of
         HimNormal -> normalModeHandler hs key
         HimInsert -> insertModeHandler hs key
         HimSelect -> selectModeHandler hs key
@@ -64,46 +57,9 @@ normalModeHandler hs c
   | otherwise   = putChar '\r'
 
 
-
-moveCursorUp :: IORef HimState -> IO ()
-moveCursorUp hs = do
-    hs' <- readIORef hs
-    writeIORef hs (over xPos (\x -> if x > 1 then x-1 else x) hs')
-    cursorUp 1
-    hFlush stdout
-
-moveCursorDown :: IORef HimState -> IO ()
-moveCursorDown hs = do
-    hs' <- readIORef hs
-    writeIORef hs (over xPos (+1) hs')
-    cursorDown 1
-    hFlush stdout
-
-moveCursorLeft :: IORef HimState -> IO ()
-moveCursorLeft hs = do
-    hs' <- readIORef hs
-    writeIORef hs (over yPos (\x -> if x > 1 then x-1 else x) hs')
-    cursorBackward 1
-    hFlush stdout
-
-moveCursorRight :: IORef HimState -> IO ()
-moveCursorRight hs = do
-    hs' <- readIORef hs
-    writeIORef hs (over yPos (+1) hs')
-    cursorForward 1
-    hFlush stdout
-
-
-updateCursorPosition :: HimState -> IO ()
-updateCursorPosition hs = do
-    setCursorPosition (view xPos hs) (view yPos hs)
-    hFlush stdout
-
-
 insertModeHandler = error "to be implemented"
 
 selectModeHandler = error "to be implemented"
-
 
 
 initWindow :: (Int, Int) -> IO ()
@@ -149,11 +105,10 @@ main = do
     forM_ windowSize print
     maybe (die "No window size") initWindow windowSize
     enterRawMode
-    hs <- newIORef initHimState 
+    hs <- newIORef emptyHimState
+    args <- parseCommandLineArgs
+    initHimState args hs
     forever $ do
         key <- getKey
-        print key
+        -- print key
         handler hs key
-
-    -- forever $ getChar >>= handler hs
-    -- forever $ timeout' 1000000 getChar handler (putStr "hello\r\n")
