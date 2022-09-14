@@ -1,16 +1,20 @@
-module Him.KeyCode (
+module Him.Key (
   KeyCode(..)
   , c2k
   , getKey
+  , getAction
 ) where
 
-import Prelude (Show, Eq, Char, Int, (.), ($), error, (<$>), const)
+import Prelude (Show, Eq, Char, Int, Enum, Ord, (.), ($), error, (<$>), const, fromEnum)
 import Data.Bits ((.&.))
 import Data.Char
     (isControl, generalCategory, ord, GeneralCategory (Control)
     , isLetter, isNumber)
 import System.IO ( IO, getChar )
 import Control.Monad (return, (>>))
+import Him.Action as HA
+import qualified Data.Map.Strict as M
+import Data.Maybe (fromMaybe)
 
 data KeyCode =
     CTRL_A | CTRL_B | CTRL_C | CTRL_D | CTRL_E | CTRL_F
@@ -25,29 +29,30 @@ data KeyCode =
   | PAGE_UP | PAGE_DOWN | HOME | END | DELETE
   | NUM_0 | NUM_1 | NUM_2 | NUM_3 | NUM_4
   | NUM_5 | NUM_6 | NUM_7 | NUM_8 | NUM_9
-  | UNKNOWN deriving (Show, Eq)
+  | UNKNOWN deriving (Eq, Show, Ord, Enum)
+
 
 
 ctrlKey :: Char -> Int
 ctrlKey = (.&. 0b00011111) . ord
 
 c2k :: Char -> KeyCode
-c2k c 
+c2k c
   | isLetter c = letter2k $ ord c
   | isControl c = ctrl2k $ ctrlKey c
   | isNumber c = number2k c
 
 number2k :: Char -> KeyCode
-number2k '0' = NUM_0 
-number2k '1' = NUM_1 
-number2k '2' = NUM_2 
-number2k '3' = NUM_4 
-number2k '4' = NUM_4 
-number2k '5' = NUM_5 
-number2k '6' = NUM_6 
-number2k '7' = NUM_7 
-number2k '8' = NUM_8 
-number2k '9' = NUM_9 
+number2k '0' = NUM_0
+number2k '1' = NUM_1
+number2k '2' = NUM_2
+number2k '3' = NUM_4
+number2k '4' = NUM_4
+number2k '5' = NUM_5
+number2k '6' = NUM_6
+number2k '7' = NUM_7
+number2k '8' = NUM_8
+number2k '9' = NUM_9
 
 letter2k :: Int -> KeyCode
 letter2k 97  = LA
@@ -114,7 +119,7 @@ getESCKey = do
     'B' -> return ARROW_DOWN
     'C' -> return ARROW_RIGHT
     'D' -> return ARROW_LEFT
-    '5' -> getChar >> return PAGE_UP 
+    '5' -> getChar >> return PAGE_UP
     '6' -> getChar >> return PAGE_DOWN
     '7' -> getChar >> return HOME
     '1' -> getChar >> return HOME
@@ -134,11 +139,22 @@ mapKey ARROW_DOWN = LJ
 mapKey ARROW_UP = LK
 mapKey ARROW_LEFT = LH
 mapKey ARROW_RIGHT = LL
-mapKey a = a 
+mapKey a = a
 
 getKey :: IO KeyCode
 getKey = do
   c <- getChar
   case c of
     '\ESC' -> mapKey <$> getESCKey
-    _      -> return $ c2k c 
+    _      -> return $ c2k c
+
+
+keyMap :: M.Map KeyCode Action
+keyMap = M.fromList [ (CTRL_Q, HA.quit)
+                    , (LK, HA.cursorUpAction)
+                    , (LJ, HA.cursorDownAction)
+                    , (LH, HA.cursorLeftAction)
+                    , (LL, HA.cursorRightAction)]
+
+getAction :: KeyCode -> Action
+getAction k = fromMaybe undefinedAction (M.lookup k keyMap)

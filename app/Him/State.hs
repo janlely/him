@@ -20,7 +20,7 @@ import qualified Data.Text.IO as T
 import qualified Data.Text.Encoding as T
 import Him.Args (CommondLineArgs, getFilePath)
 import Data.Maybe (maybe, isJust, fromJust)
-import qualified Data.HashMap.Internal.Strict as M
+import qualified Data.Map.Strict as M
 import Debug.Trace (trace)
 import System.IO (hFlush, stdout)
 import System.Console.ANSI
@@ -36,7 +36,7 @@ data HimState = HimState
   , _screenWidth :: !Int
   , _rows :: !(V.Vector HimRow) 
   , _currentRange :: !(Int, Int)
-  , _lineMap :: !(M.HashMap Int Int)
+  , _lineMap :: !(M.Map Int Int)
   , _himMode :: HimMode
   , _fileType :: FileType}
 
@@ -106,13 +106,13 @@ parseRows = V.fromList . fmap (\line -> HimRow line (count line)) . BSC.lines
   where count = T.length . T.decodeUtf8
 
 xPosUp :: HimState -> HimState
-xPosUp = LEN.over xPos (\x -> if x > 1 then x-1 else x) 
+xPosUp = LEN.over xPos (\x -> if x > 0 then x-1 else x) 
 
 xPosDown :: HimState -> HimState
 xPosDown = LEN.over xPos (+1)
 
 yPosUp :: HimState -> HimState
-yPosUp = LEN.over yPos (\x -> if x > 1 then x-1 else x)
+yPosUp = LEN.over yPos (\x -> if x > 0 then x-1 else x)
 
 yPosDown :: HimState -> HimState
 yPosDown = LEN.over yPos (+1)

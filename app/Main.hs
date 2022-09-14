@@ -19,7 +19,7 @@ import System.Console.ANSI
 import System.IO (hReady, stdin, stdout, hShow, hFlush, hGetLine)
 import Debug.Trace (trace)
 import Data.IORef ( IORef, newIORef, readIORef, writeIORef )
-import Him.KeyCode (KeyCode(..), c2k, getKey)
+import Him.Key (KeyCode(..), c2k, getKey, getAction)
 import Data.Word (Word8)
 import Him.Args (parseCommandLineArgs)
 import Him.State (HimState, getMode, emptyHimState, initHimState, HimMode(..))
@@ -42,18 +42,12 @@ handler :: IORef HimState -> KeyCode -> IO ()
 handler hs key = do
     hs' <- readIORef hs 
     case getMode hs' of
-        HimNormal -> normalModeHandler hs key
-        HimInsert -> insertModeHandler hs key
-        HimSelect -> selectModeHandler hs key
+        HimNormal -> normalModeHandler key hs
+        HimInsert -> insertModeHandler key hs
+        HimSelect -> selectModeHandler key hs
 
-normalModeHandler :: IORef HimState -> KeyCode -> IO ()
-normalModeHandler hs c 
-  | c == CTRL_Q = clearScreen >> exitSuccess 
-  | c == LK     = HA.exeAction HA.cursorUpAction hs 
-  | c == LJ     = HA.exeAction HA.cursorDownAction hs
-  | c == LH     = HA.exeAction HA.cursorLeftAction hs
-  | c == LL     = HA.exeAction HA.cursorRightAction hs
-  | otherwise   = putChar '\r'
+normalModeHandler :: KeyCode -> IORef HimState -> IO ()
+normalModeHandler = HA.exeAction . getAction
 
 
 insertModeHandler = error "to be implemented"

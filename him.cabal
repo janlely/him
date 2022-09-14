@@ -39,13 +39,15 @@ executable him
         , text >= 2
         , vector >= 0.13
         , bytestring >= 0.11.3.1
-        , unordered-containers >= 0.2.19
+        , containers >= 0.6
+        , hashable >= 1.4
 
     other-modules:
           Him.Args
         , Him.Cursor
-        , Him.KeyCode
+        , Him.Key
         , Him.State
+        , Him.Action
 
     default-extensions:
         BinaryLiterals
