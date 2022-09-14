@@ -1,0 +1,2 @@
+module Him.Log where
+

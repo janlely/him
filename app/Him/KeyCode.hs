@@ -9,7 +9,7 @@ import Data.Bits ((.&.))
 import Data.Char
     (isControl, generalCategory, ord, GeneralCategory (Control)
     , isLetter, isNumber)
-import System.IO hiding (LF)
+import System.IO ( IO, getChar )
 import Control.Monad (return, (>>))
 
 data KeyCode =

@@ -20,11 +20,10 @@ import System.IO (hReady, stdin, stdout, hShow, hFlush, hGetLine)
 import Debug.Trace (trace)
 import Data.IORef ( IORef, newIORef, readIORef, writeIORef )
 import Him.KeyCode (KeyCode(..), c2k, getKey)
--- import qualified Data.Vector.Unboxed as VU
 import Data.Word (Word8)
 import Him.Args (parseCommandLineArgs)
 import Him.State (HimState, getMode, emptyHimState, initHimState, HimMode(..))
-import Him.Cursor (moveCursorDown, moveCursorUp, moveCursorLeft, moveCursorRight)
+import qualified Him.Action as HA
 
 
 
@@ -50,10 +49,10 @@ handler hs key = do
 normalModeHandler :: IORef HimState -> KeyCode -> IO ()
 normalModeHandler hs c 
   | c == CTRL_Q = clearScreen >> exitSuccess 
-  | c == LK     = moveCursorUp hs 
-  | c == LJ     = moveCursorDown hs
-  | c == LH     = moveCursorLeft hs
-  | c == LL     = moveCursorRight hs
+  | c == LK     = HA.exeAction HA.cursorUpAction hs 
+  | c == LJ     = HA.exeAction HA.cursorDownAction hs
+  | c == LH     = HA.exeAction HA.cursorLeftAction hs
+  | c == LL     = HA.exeAction HA.cursorRightAction hs
   | otherwise   = putChar '\r'
 
 
@@ -61,26 +60,6 @@ insertModeHandler = error "to be implemented"
 
 selectModeHandler = error "to be implemented"
 
-
-initWindow :: (Int, Int) -> IO ()
-initWindow s@(h, _) = do
-    clearScreen
-    replicateM_ (h-1) $ putStr "~\r\n"
-    putStr "~\r"
-    setCursorPosition 0 0
-    printWelcomeMessage s
-    setCursorPosition 0 0
-    hFlush stdout
-
-printWelcomeMessage :: (Int, Int) -> IO ()
-printWelcomeMessage (h, w) = do
-    replicateM_ ((h - 1) `div` 2) $ putStr "\r\n"
-    let welcome = "welcome to him"
-        len = length welcome
-    when (len < w) $ do
-        replicateM_ ((w - len) `div` 2) $ putChar ' '
-    putStr welcome
-    putStr "\r\n"
 
 enterRawMode :: IO ()
 enterRawMode = do
@@ -102,13 +81,11 @@ enterRawMode = do
 main :: IO ()
 main = do
     windowSize <- getTerminalSize 
-    forM_ windowSize print
-    maybe (die "No window size") initWindow windowSize
+    when (isNothing windowSize) (die "No window size")
     enterRawMode
-    hs <- newIORef emptyHimState
+    hs <- newIORef $ emptyHimState (fromJust windowSize)
     args <- parseCommandLineArgs
     initHimState args hs
     forever $ do
         key <- getKey
-        -- print key
         handler hs key

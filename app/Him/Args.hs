@@ -4,7 +4,7 @@ module Him.Args (
   , parseCommandLineArgs
 ) where
 
-import System.Environment
+import System.Environment ( getArgs )
 
 newtype CommondLineArgs = CommondLineArgs
   { _filePath :: Maybe FilePath }
