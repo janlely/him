@@ -7,6 +7,9 @@ module Him.State (
   , emptyHimState, initHimState
   , render
   , getScreenHeight, getScreenWidth
+  , canScrollUp, canScrollDown
+  , xScrollUp, xScrollDown
+  , fileLength
 ) where
 
 import qualified Control.Lens as LEN
@@ -19,7 +22,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Encoding as T
 import Him.Args (CommondLineArgs, getFilePath)
-import Data.Maybe (maybe, isJust, fromJust)
+import Data.Maybe (maybe, isJust, fromJust, isNothing)
 import qualified Data.Map.Strict as M
 import Debug.Trace (trace)
 import System.IO (hFlush, stdout)
@@ -27,6 +30,7 @@ import System.Console.ANSI
     (clearScreen,setCursorPosition)
 import Control.Monad (when, forever, replicateM_, forM_)
 import Him.FileType (FileType)
+import Data.Bifunctor (bimap, first)
 
 data HimMode = HimInsert | HimNormal | HimSelect deriving (Show)
 data HimState = HimState
@@ -106,13 +110,13 @@ parseRows = V.fromList . fmap (\line -> HimRow line (count line)) . BSC.lines
   where count = T.length . T.decodeUtf8
 
 xPosUp :: HimState -> HimState
-xPosUp = LEN.over xPos (\x -> if x > 0 then x-1 else x) 
+xPosUp = LEN.over xPos (+ (-1))
 
 xPosDown :: HimState -> HimState
 xPosDown = LEN.over xPos (+1)
 
 yPosUp :: HimState -> HimState
-yPosUp = LEN.over yPos (\x -> if x > 0 then x-1 else x)
+yPosUp = LEN.over yPos (+ (-1))
 
 yPosDown :: HimState -> HimState
 yPosDown = LEN.over yPos (+1)
@@ -129,14 +133,17 @@ getScreenHeight = _screenHeight
 getScreenWidth :: HimState -> Int
 getScreenWidth = _screenWidth
 
+fileLength :: HimState -> Int
+fileLength = V.length . _rows
+
 renderRows :: (Int, Int) -> V.Vector HimRow -> IO ()
 renderRows (start, length) = T.putStr . T.decodeUtf8 . BS.intercalate (BSC.pack "\r\n") . V.toList . V.map _content . V.slice start length   
 
 render :: IORef HimState -> IO ()
 render hs = do
   hs' <- readIORef hs
-  renderRows (LEN.view currentRange hs') (LEN.view rows hs')
-  setCursorPosition 0 0 
+  renderRows (_currentRange hs') (_rows hs')
+  setCursorPosition (_xPos hs') (_yPos hs')
   -- updateCursor hs
   hFlush stdout
 
@@ -146,3 +153,22 @@ render hs = do
 --   when (isJust currentPos) $ do
 --     let (x,y) = fromJust currentPos
 --     modifyIORef hs (LEN.set xPos x . LEN.set yPos y)
+
+canScrollUp :: HimState -> Bool
+canScrollUp state
+  | M.null (_lineMap state) = False
+  | isNothing (M.lookup 0 (_lineMap state)) = False
+  | otherwise = _lineMap state M.! 0 > 0
+
+canScrollDown :: HimState -> Bool
+canScrollDown state
+  | M.null (_lineMap state) = False
+  | isNothing (M.lookup (_screenHeight state - 1) (_lineMap state)) = False
+  | _lineMap state M.! (_screenHeight state - 1) >= V.length (_rows state) - 1 = False
+  | otherwise = True
+
+xScrollUp :: HimState -> HimState
+xScrollUp = LEN.over currentRange (first (+(-1))) . LEN.over lineMap (M.map (+ (-1))) 
+
+xScrollDown :: HimState -> HimState
+xScrollDown = LEN.over currentRange (first (+1)) . LEN.over lineMap (M.map (+1))

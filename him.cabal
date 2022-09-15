@@ -48,6 +48,7 @@ executable him
         , Him.Key
         , Him.State
         , Him.Action
+        , Him.Util
 
     default-extensions:
         BinaryLiterals

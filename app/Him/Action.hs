@@ -2,12 +2,13 @@ module Him.Action  where
 
 import Data.IORef (IORef, modifyIORef, readIORef)
 import Him.State (HimState(..), getXPos, getYPos, xPosUp, xPosDown, yPosUp, yPosDown, render
-    , getScreenHeight, getScreenWidth)
+    , getScreenHeight, getScreenWidth, canScrollUp, canScrollDown, xScrollUp, xScrollDown, fileLength)
 import System.Console.ANSI (clearScreen, cursorUp, cursorDown, cursorBackward, cursorForward, setCursorPosition)
 import System.IO (hFlush, stdout)
 import Control.Monad (when)
 import Debug.Trace (trace)
 import System.Exit (exitSuccess)
+import qualified Him.Util as HU
 
 data Action = Action { _actionName :: String
                      , _actionDescription :: String
@@ -38,26 +39,32 @@ cursorUpAction :: Action
 cursorUpAction = Action {
     _actionName = "cursorUp"
   , _actionDescription = "Move the cursor up"
-  , _condition = (> 0) . getXPos 
+  , _condition = \state -> getXPos state > 0 || canScrollUp state
   , _refresh = False
   , _action = \state -> do
         s <- readIORef state
         let (x, y) = (getXPos s, getYPos s) 
-        setCursorPosition (x - 1) y
-        modifyIORef state xPosUp
+        if x > 0
+          then setCursorPosition (x - 1) y >> modifyIORef state xPosUp
+          else modifyIORef state xScrollUp >> render state
   }
 
 cursorDownAction :: Action
 cursorDownAction = Action {
     _actionName = "cursorDown"
   , _actionDescription = "Move the cursor down"
-  , _condition = \state -> getXPos state < getScreenHeight state
+  , _condition = \state -> let notHitBottom = HU.map2 getXPos ((+ (-1)) . getScreenHeight) (<) state 
+                               notReachFileEnd = getXPos state < fileLength state - 1 
+                               scrollAble = canScrollDown state
+                            in notHitBottom && notReachFileEnd || scrollAble
   , _refresh = False
   , _action = \state -> do
         s <- readIORef state
         let (x, y) = (getXPos s, getYPos s) 
-        setCursorPosition (x + 1) y
-        modifyIORef state xPosDown
+        if x < getScreenHeight s - 1 
+          then setCursorPosition (x + 1) y >> modifyIORef state xPosDown
+          else modifyIORef state xScrollDown >> render state 
+        
   } 
 
 cursorLeftAction :: Action
